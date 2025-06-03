@@ -41,7 +41,7 @@ Este proyecto es una API RESTful para la gestión de empleados y departamentos d
 
 1.  **Clonar el repositorio:**
     ```bash
-    git clone [https://github.com/AISCOD/gestion_empleados.git)
+    git clone [https://github.com/jrccdevs/gestion_empleados.git)
     cd empleados-api
     ```
 
