@@ -7,7 +7,7 @@ const {
   eliminarDepartamento,
 } = require('../controllers/departamentoController');
 const { protect, authorize } = require('../middlewares/authMiddleware');
-const { Empleado } = require('../models'); // Importar Empleado para la inclusión
+const { Departamento, Empleado } = require('../models'); // Importar Empleado para la inclusión
 
 const router = express.Router();
 

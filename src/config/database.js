@@ -20,7 +20,7 @@ const sequelize = new Sequelize(config.database, config.username, config.passwor
   logging: false,
   dialectOptions: {
     charset: 'utf8mb4',
-    collate: 'utf8mb4_unicode_ci',
+    //collate: 'utf8mb4_unicode_ci',
   }
 });
 

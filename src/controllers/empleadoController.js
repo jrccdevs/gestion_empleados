@@ -25,7 +25,10 @@ exports.crearEmpleado = async (req, res) => {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ message: 'Formato de email inválido.' });
     }
-
+    
+    if (!/^[0-9]+$/.test(telefono)){
+      return res.status(400).json({ message: 'Formato de telefono inválido.' });
+    }
     // Verificar si el email ya existe
     const empleadoExistente = await Empleado.findOne({ where: { email } });
     if (empleadoExistente) {
@@ -71,7 +74,7 @@ exports.crearEmpleado = async (req, res) => {
 };
 
 // Obtener todos los empleados con filtros y paginación
-exports.obtenerEmpleados = async (req, res) => {
+exports.obtenerEmpleados = async (req, res, next) => { // Añadir 'next' si lo usas para errores
   try {
     const {
       nombre,
@@ -82,68 +85,90 @@ exports.obtenerEmpleados = async (req, res) => {
       departamento_id,
       fecha_ingreso_desde,
       fecha_ingreso_hasta,
-      page = 1, // Página actual, por defecto 1
-      limit = 10, // Límite de resultados por página, por defecto 10
+      page = 1,
+      limit = 10,
+      select, // *** NUEVO: Capturar el parámetro 'select' ***
     } = req.query;
 
-    const offset = (parseInt(page) - 1) * parseInt(limit);
     const whereClause = {};
+    const attributes = ['id', 'nombre', 'apellido', 'email']; // Atributos por defecto para el dropdown
 
-    if (nombre) {
-      whereClause.nombre = { [Op.like]: `%${nombre}%` };
-    }
-    if (apellido) {
-      whereClause.apellido = { [Op.like]: `%${apellido}%` };
-    }
-    if (email) {
-      whereClause.email = { [Op.like]: `%${email}%` };
-    }
-    if (puesto) {
-      whereClause.puesto = { [Op.like]: `%${puesto}%` };
-    }
-    if (estado) {
-      whereClause.estado = estado;
-    }
-    if (departamento_id) {
-      whereClause.departamento_id = departamento_id;
+    // Si 'select' es true, sobrescribir limit y offset para obtener todos,
+    // y solo los atributos necesarios.
+    let currentLimit = parseInt(limit);
+    let currentOffset = (parseInt(page) - 1) * currentLimit;
+
+    if (select === 'true') {
+      currentLimit = null; // No hay límite, obtener todos
+      currentOffset = 0;   // No hay offset
+      // No necesitamos aplicar filtros complejos ni paginación para una lista simple
+      // El `whereClause` vacío estará bien si no quieres filtrar por defecto en modo `select`
+    } else {
+      // Aplicar filtros solo si NO estamos en modo 'select'
+      if (nombre) {
+        whereClause.nombre = { [Op.like]: `%${nombre}%` };
+      }
+      if (apellido) {
+        whereClause.apellido = { [Op.like]: `%${apellido}%` };
+      }
+      if (email) {
+        whereClause.email = { [Op.like]: `%${email}%` };
+      }
+      if (puesto) {
+        whereClause.puesto = { [Op.like]: `%${puesto}%` };
+      }
+      if (estado) {
+        whereClause.estado = estado;
+      }
+      if (departamento_id) {
+        whereClause.departamento_id = departamento_id;
+      }
+      if (fecha_ingreso_desde || fecha_ingreso_hasta) {
+        whereClause.fecha_ingreso = {};
+        if (fecha_ingreso_desde) {
+          whereClause.fecha_ingreso[Op.gte] = fecha_ingreso_desde;
+        }
+        if (fecha_ingreso_hasta) {
+          whereClause.fecha_ingreso[Op.lte] = fecha_ingreso_hasta;
+        }
+      }
     }
 
-    // Filtro por rango de fecha de ingreso
-    if (fecha_ingreso_desde || fecha_ingreso_hasta) {
-      whereClause.fecha_ingreso = {};
-      if (fecha_ingreso_desde) {
-        whereClause.fecha_ingreso[Op.gte] = fecha_ingreso_desde;
-      }
-      if (fecha_ingreso_hasta) {
-        whereClause.fecha_ingreso[Op.lte] = fecha_ingreso_hasta;
-      }
-    }
 
     const { count, rows: empleados } = await Empleado.findAndCountAll({
       where: whereClause,
-      include: [{
+      attributes: select === 'true' ? attributes : undefined, // Solo atributos específicos si 'select' es true
+      include: select === 'true' ? [] : [{ // No incluir departamento si 'select' es true
         model: Departamento,
         as: 'departamento',
-        attributes: ['id', 'nombre'], // Incluir solo los campos necesarios del departamento
+        attributes: ['id', 'nombre'],
       }],
-      limit: parseInt(limit),
-      offset: offset,
-      order: [['apellido', 'ASC'], ['nombre', 'ASC']], // Ordenar por apellido y nombre
+      limit: currentLimit, // Usa el límite ajustado
+      offset: currentOffset, // Usa el offset ajustado
+      order: [['apellido', 'ASC'], ['nombre', 'ASC']],
     });
 
-    res.status(200).json({
-      total: count,
-      pagina: parseInt(page),
-      limite: parseInt(limit),
-      total_paginas: Math.ceil(count / parseInt(limit)),
-      empleados,
-    });
+    if (select === 'true') {
+        // Para el dropdown, solo necesitamos la lista de empleados directamente
+        return res.status(200).json(empleados);
+    } else {
+        // Para la paginación completa, devuelve el objeto con metadatos
+        return res.status(200).json({
+            total: count,
+            pagina: parseInt(page),
+            limite: parseInt(limit),
+            total_paginas: Math.ceil(count / parseInt(limit)),
+            empleados,
+        });
+    }
+
   } catch (error) {
     console.error('Error al obtener empleados:', error);
-    res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
+    // Asegúrate de usar `next(error)` si tienes un middleware de manejo de errores centralizado
+    // O directamente `res.status(500).json({ message: 'Error interno del servidor.', error: error.message });`
+    return res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
   }
 };
-
 // Obtener un empleado por ID
 exports.obtenerEmpleadoPorId = async (req, res) => {
   try {
@@ -191,6 +216,9 @@ exports.actualizarEmpleado = async (req, res) => {
     // Validar formato de email si se proporciona
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return res.status(400).json({ message: 'Formato de email inválido.' });
+    }
+    if (telefono && !/^[0-9]+$/.test(telefono)){
+      return res.status(400).json({ message: 'Formato de telefono inválido.' });
     }
 
     // Verificar si el nuevo email ya existe en otro empleado
@@ -265,110 +293,109 @@ exports.eliminarEmpleado = async (req, res) => {
 
 // Función auxiliar para construir la jerarquía recursivamente
 async function construirJerarquia(empleadoId, departamentoId) {
-    const empleado = await Empleado.findByPk(empleadoId, {
-        attributes: ['id', 'nombre', 'apellido', 'email', 'puesto'],
-        include: [{
-            model: Empleado,
-            as: 'subordinados',
-            attributes: ['id', 'nombre', 'apellido', 'email', 'puesto'],
-            where: { departamento_id: departamentoId }, // Solo subordinados del mismo departamento
-            required: false // LEFT JOIN para incluir incluso si no hay subordinados
-        }]
-    });
+  // 1. Obtener los datos del empleado actual
+  const empleado = await Empleado.findByPk(empleadoId, {
+      attributes: ['id', 'nombre', 'apellido', 'email', 'puesto']
+  });
 
-    if (!empleado) {
-        return null;
-    }
+  // Si el empleado no existe, o no pertenece a este departamento (aunque filtramos por supervisor_id + departamento_id)
+  if (!empleado) {
+      return null;
+  }
 
-    const nodo = {
-        id: empleado.id,
-        nombre: empleado.nombre,
-        apellido: empleado.apellido,
-        email: empleado.email,
-        puesto: empleado.puesto,
-        subordinados: []
-    };
+  // 2. Encontrar a todos los empleados que reportan directamente a este 'empleado'
+  //    Y que P E R T E N E Z C A N   A L   M I S M O   D E P A R T A M E N T O
+  const reportesDirectosDB = await Empleado.findAll({
+      where: {
+          supervisor_id: empleado.id,      // Su supervisor es el empleado actual
+          departamento_id: departamentoId  // Están en el mismo departamento
+      },
+      attributes: ['id', 'nombre', 'apellido', 'email', 'puesto']
+  });
 
-    if (empleado.subordinados && empleado.subordinados.length > 0) {
-        for (const sub of empleado.subordinados) {
-            // Recursivamente construir la jerarquía para cada subordinado
-            const subNodo = await construirJerarquia(sub.id, departamentoId);
-            if (subNodo) {
-                nodo.subordinados.push(subNodo);
-            }
-        }
-    }
-    return nodo;
+  const reportesAnidados = [];
+  for (const reporte of reportesDirectosDB) {
+      // 3. ¡Llamada recursiva! Para cada reporte directo, construye su sub-árbol
+      const subArbol = await construirJerarquia(reporte.id, departamentoId);
+      if (subArbol) {
+          reportesAnidados.push(subArbol);
+      }
+  }
+
+  // 4. Devolver el empleado actual con sus reportes directos anidados
+  return {
+      id: empleado.id,
+      nombre: empleado.nombre,
+      apellido: empleado.apellido,
+      email: empleado.email,
+      puesto: empleado.puesto,
+      reportes_directos: reportesAnidados // <--- ESTA ES LA PROPIEDAD CRUCIAL QUE EL FRONTEND ESPERA
+  };
 }
 
 
-// Reporte jerárquico por departamento
+// --- Tu función principal del controlador ---
 exports.obtenerJerarquiaPorDepartamento = async (req, res) => {
   try {
-    const { departamentoId } = req.params;
+      const { departamentoId } = req.params;
 
-    const departamento = await Departamento.findByPk(departamentoId);
-    if (!departamento) {
-      return res.status(404).json({ message: 'Departamento no encontrado.' });
-    }
+      const departamento = await Departamento.findByPk(departamentoId);
+      if (!departamento) {
+          return res.status(404).json({ message: 'Departamento no encontrado.' });
+      }
 
-    let jefeDirecto = null;
-    if (departamento.jefe_departamento_id) {
-        jefeDirecto = await Empleado.findByPk(departamento.jefe_departamento_id, {
-            attributes: ['id', 'nombre', 'apellido', 'email', 'puesto'],
-            include: [{
-                model: Departamento,
-                as: 'departamento',
-                attributes: ['id', 'nombre']
-            }]
-        });
-    }
+      let jefeDirecto = null;
+      if (departamento.jefe_departamento_id) {
+          jefeDirecto = await Empleado.findByPk(departamento.jefe_departamento_id, {
+              attributes: ['id', 'nombre', 'apellido', 'email', 'puesto'],
+          });
+      }
 
-    // Si no hay jefe asignado al departamento, buscamos empleados sin supervisor dentro de ese departamento
-    // para considerarlos "raíces" de la jerarquía (si no hay un jefe definido)
-    let raicesJerarquia = [];
-    if (jefeDirecto) {
-        raicesJerarquia.push(jefeDirecto);
-    } else {
-        // Encuentra empleados que no tienen supervisor y pertenecen a este departamento
-        // Estos serán las "raíces" de la jerarquía si no hay un jefe de departamento explícito
-        const empleadosSinSupervisor = await Empleado.findAll({
-            where: {
-                departamento_id: departamentoId,
-                supervisor_id: { [Op.is]: null }
-            },
-            attributes: ['id', 'nombre', 'apellido', 'email', 'puesto']
-        });
-        raicesJerarquia = empleadosSinSupervisor;
-    }
+      let raicesJerarquia = [];
+      // Si hay un jefe de departamento, solo él es la raíz principal de la jerarquía visual
+      if (jefeDirecto) {
+          // Construye el árbol completo para el jefe de departamento
+          const arbolJefe = await construirJerarquia(jefeDirecto.id, departamentoId);
+          if(arbolJefe) {
+              raicesJerarquia.push(arbolJefe);
+          }
+      } else {
+          // Si no hay jefe de departamento, busca empleados sin supervisor en ese departamento
+          // Estos serán las raíces de la jerarquía visual
+          const empleadosSinSupervisor = await Empleado.findAll({
+              where: {
+                  departamento_id: departamentoId,
+                  supervisor_id: { [Op.is]: null }
+              },
+              attributes: ['id', 'nombre', 'apellido', 'email', 'puesto']
+          });
+          // Construye el árbol para cada uno de estos empleados "raíz"
+          for (const raiz of empleadosSinSupervisor) {
+              const arbol = await construirJerarquia(raiz.id, departamentoId);
+              if (arbol) {
+                  raicesJerarquia.push(arbol);
+              }
+          }
+      }
 
-
-    const jerarquia = [];
-    for (const raiz of raicesJerarquia) {
-        const arbol = await construirJerarquia(raiz.id, departamentoId);
-        if (arbol) {
-            jerarquia.push(arbol);
-        }
-    }
-
-    res.status(200).json({
-      departamento: {
-        id: departamento.id,
-        nombre: departamento.nombre,
-        descripcion: departamento.descripcion,
-      },
-      jefe_departamento: jefeDirecto ? {
-        id: jefeDirecto.id,
-        nombre: jefeDirecto.nombre,
-        apellido: jefeDirecto.apellido,
-        email: jefeDirecto.email,
-        puesto: jefeDirecto.puesto
-      } : null,
-      estructura_organizacional: jerarquia,
-    });
+      res.status(200).json({
+          departamento: {
+              id: departamento.id,
+              nombre: departamento.nombre,
+              descripcion: departamento.descripcion,
+          },
+          jefe_departamento: jefeDirecto ? {
+              id: jefeDirecto.id,
+              nombre: jefeDirecto.nombre,
+              apellido: jefeDirecto.apellido,
+              email: jefeDirecto.email,
+              puesto: jefeDirecto.puesto
+          } : null,
+          estructura_organizacional: raicesJerarquia, // <-- Este array ya DEBE contener la estructura anidada
+      });
 
   } catch (error) {
-    console.error('Error al obtener la jerarquía por departamento:', error);
-    res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
+      console.error('Error al obtener la jerarquía por departamento:', error);
+      res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
   }
 };

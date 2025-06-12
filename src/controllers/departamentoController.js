@@ -1,5 +1,5 @@
-const { Departamento } = require('../models');
-
+const { Departamento, Empleado } = require('../models');
+const { Op } = require('sequelize'); // Para operadores de Sequelize
 // Crear un nuevo departamento
 exports.crearDepartamento = async (req, res) => {
   try {
