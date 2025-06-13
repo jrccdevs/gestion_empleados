@@ -1,4 +1,17 @@
 // tu-proyecto-backend/src/config/database.js
+try {
+  const testMysql2 = require('mysql2');
+  console.log('✅ mysql2 se ha cargado correctamente en el entorno de Vercel.');
+} catch (e) {
+  console.error('❌ ERROR CRÍTICO: No se puede cargar mysql2:', e.message);
+}
+
+try {
+  const testSequelize = require('sequelize');
+  console.log('✅ sequelize se ha cargado correctamente en el entorno de Vercel.');
+} catch (e) {
+  console.error('❌ ERROR CRÍTICO: No se puede cargar sequelize:', e.message);
+}
 
 const { Sequelize } = require('sequelize');
 require('dotenv').config(); // Puedes dejarla o comentarla, Vercel la ignora en producción
