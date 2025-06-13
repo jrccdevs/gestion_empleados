@@ -1,27 +1,32 @@
+// tu-proyecto-backend/src/config/database.js
+
 const { Sequelize } = require('sequelize');
-require('dotenv').config();
+require('dotenv').config(); // Puedes dejarla o comentarla, Vercel la ignora en producción
 
-// Cambia de config.json a config.js
-const env = process.env.NODE_ENV || 'development';
-const config = require('./config.js')[env]; // <--- ¡Asegúrate de que esto apunte a config.js!
-
-// Estas líneas ahora son redundantes si config.js ya las está leyendo de process.env,
-// pero no hacen daño si las dejas. Lo importante es que config.js las lea bien.
-// config.username = process.env.DB_USER;
-// config.password = process.env.DB_PASSWORD;
-// config.database = process.env.DB_NAME;
-// config.host = process.env.DB_HOST;
-// config.port = process.env.DB_PORT;
-
-const sequelize = new Sequelize(config.database, config.username, config.password, {
-  host: config.host,
-  port: config.port,
-  dialect: config.dialect,
-  logging: false,
-  dialectOptions: {
-    charset: 'utf8mb4',
-    //collate: 'utf8mb4_unicode_ci',
+// Inicializa Sequelize DIRECTAMENTE con process.env
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306, // Añade un puerto por defecto si no siempre lo configuras
+    dialect: 'mysql',
+    logging: false,
+    dialectOptions: {
+      charset: 'utf8mb4',
+      // collate: 'utf8mb4_unicode_ci',
+      ssl: process.env.DB_SSL ? { // Configuración SSL si tu DB lo requiere y si DB_SSL es 'true'
+        rejectUnauthorized: false // Esto es común para bases de datos compartidas. ¡Usar con precaución!
+      } : false
+    },
+    pool: { // Esto es importante para serverless, ayuda a reutilizar conexiones
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 10000
+    }
   }
-});
+);
 
 module.exports = sequelize;
