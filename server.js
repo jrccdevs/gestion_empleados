@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE CORS ---
 const corsOptions = {
-  origin: ['http://localhost:4001', 'https://gestion-empleados-nine.vercel.app/'], // <-- puerto exacto de frontend
+  origin: 'http://localhost:4001',  // <-- puerto exacto de frontend
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Permite el envío de cookies o encabezados de autorización
   optionsSuccessStatus: 204 // Código de estado para preflight OPTIONS requests
