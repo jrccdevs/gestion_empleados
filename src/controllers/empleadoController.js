@@ -89,9 +89,11 @@ exports.obtenerEmpleados = async (req, res, next) => { // Añadir 'next' si lo u
       limit = 10,
       select, // *** NUEVO: Capturar el parámetro 'select' ***
     } = req.query;
+    console.log('Filtros parseados:', { nombre, apellido, email, puesto, estado, departamento_id, fecha_ingreso_desde, fecha_ingreso_hasta, page, limit, select });
 
     const whereClause = {};
     const attributes = ['id', 'nombre', 'apellido', 'email']; // Atributos por defecto para el dropdown
+    console.log('whereClause construida:', whereClause);
 
     // Si 'select' es true, sobrescribir limit y offset para obtener todos,
     // y solo los atributos necesarios.
@@ -163,11 +165,11 @@ exports.obtenerEmpleados = async (req, res, next) => { // Añadir 'next' si lo u
     }
 
   } catch (error) {
-    console.error('Error al obtener empleados:', error);
-    // Asegúrate de usar `next(error)` si tienes un middleware de manejo de errores centralizado
-    // O directamente `res.status(500).json({ message: 'Error interno del servidor.', error: error.message });`
-    return res.status(500).json({ message: 'Error interno del servidor.', error: error.message });
-  }
+    return res.status(500).json({
+      message: 'Error interno del servidor al obtener empleados.',
+      error: error.message, // Incluye el mensaje de error para depurar
+      stack: process.env.NODE_ENV === 'production' ? undefined : error.stack // Opcional: stack en dev
+    }); }
 };
 // Obtener un empleado por ID
 exports.obtenerEmpleadoPorId = async (req, res) => {
