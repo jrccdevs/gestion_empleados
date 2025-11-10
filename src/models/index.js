@@ -9,9 +9,7 @@ const Departamento = require('./Departamento');
 const Empleado = require('./Empleado');
 
 // --- Definir Relaciones ---
-// Asegúrate de que los modelos estén definidos antes de intentar crear las asociaciones.
-// Las asociaciones se definen en el modelo principal (index.js) o dentro de los propios archivos de modelo si cada modelo tiene su propio archivo .associate.
-// Dado tu configuración, definirlas aquí en index.js es lo apropiado.
+
 
 // Empleado pertenece a un Departamento
 Empleado.belongsTo(Departamento, {

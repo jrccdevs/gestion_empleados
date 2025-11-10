@@ -17,8 +17,8 @@ const router = express.Router();
 router.use(protect); // Aplica protección a todas las rutas que siguen
 
 // Esta ruta manejará la obtención de empleados para todo (incluyendo el dropdown)
-// Asegúrate de que obtenerEmpleados en el controlador filtre los atributos si es necesario para el dropdown
-router.get('/', authorize(['admin', 'user']), obtenerEmpleados); // Aquí llamas al controlador
+
+router.get('/', authorize(['admin', 'user']), obtenerEmpleados); // Aquí llamamos al controlador
 
 router.post('/', authorize('admin'), crearEmpleado);
 router.put('/:id', authorize('admin'), actualizarEmpleado);

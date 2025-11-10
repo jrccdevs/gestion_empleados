@@ -1,4 +1,4 @@
-// tu-proyecto-backend/src/config/database.js
+//src/config/database.js
 try {
   const testMysql2 = require('mysql2');
   console.log('✅ mysql2 se ha cargado correctamente en el entorno de Vercel.');
@@ -14,7 +14,7 @@ try {
 }
 
 const { Sequelize } = require('sequelize');
-require('dotenv').config(); // Puedes dejarla o comentarla, Vercel la ignora en producción
+require('dotenv').config(); 
 
 // Inicializa Sequelize DIRECTAMENTE con process.env
 const sequelize = new Sequelize(
@@ -23,17 +23,17 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT || 3306, // Añade un puerto por defecto si no siempre lo configuras
+    port: process.env.DB_PORT || 3306, // puerto por defecto si
     dialect: 'mysql',
     logging: false,
     dialectOptions: {
       charset: 'utf8mb4',
       // collate: 'utf8mb4_unicode_ci',
-      ssl: process.env.DB_SSL ? { // Configuración SSL si tu DB lo requiere y si DB_SSL es 'true'
-        rejectUnauthorized: false // Esto es común para bases de datos compartidas. ¡Usar con precaución!
+      ssl: process.env.DB_SSL ? { // Configuración SSL es 'true'
+        rejectUnauthorized: false // Esto es común para bases de datos compartidas.
       } : false
     },
-    pool: { // Esto es importante para serverless, ayuda a reutilizar conexiones
+    pool: { // para serverless, ayuda a reutilizar conexiones
       max: 5,
       min: 0,
       acquire: 30000,

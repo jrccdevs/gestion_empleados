@@ -37,14 +37,14 @@ exports.protect = async (req, res, next) => {
 
 exports.authorize = (roles = []) => {
   return (req, res, next) => {
-    console.log('Authorize: Checking roles for user:', req.user ? req.user.email : 'N/A', 'Role:', req.user ? req.user.rol : 'N/A');
-    console.log('Authorize: Required roles:', roles);
+    console.log('Autorizacion: comprobacion de usuario:', req.user ? req.user.email : 'N/A', 'Role:', req.user ? req.user.rol : 'N/A');
+    console.log('Autorizacion: Requiere  rol:', roles);
 
     if (!req.user || !req.user.rol) {
-      return res.status(403).json({ message: 'No user role found or user not authenticated.' });
+      return res.status(403).json({ message: 'No se encontró ningún rol de usuario o el usuario no está autenticado.' });
     }
     if (roles.length > 0 && !roles.includes(req.user.rol)) {
-      return res.status(403).json({ message: `User role ${req.user.rol} is not authorized to access this route.` });
+      return res.status(403).json({ message: `Usuario rol ${req.user.rol} no esta autorizado a acceder a esta ruta` });
     }
     next();
   };

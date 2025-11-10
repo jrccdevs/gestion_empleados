@@ -16,13 +16,12 @@ const PORT = process.env.PORT || 3000;
 
 // --- CONFIGURACIÓN DE CORS ---
 const corsOptions = {
-  origin: 'http://localhost:4001',  // <-- puerto exacto de frontend
+  origin: ['http://localhost:4001', 'https://front-empleados-phi.vercel.app'],
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Permite el envío de cookies o encabezados de autorización
-  optionsSuccessStatus: 204 // Código de estado para preflight OPTIONS requests
+  credentials: true,
+  optionsSuccessStatus: 204
 };
-app.use(cors(corsOptions)); // <-- Usar el middleware CORS
-
+app.use(cors(corsOptions));
 // Middlewares existentes
 app.use(express.json());
 
